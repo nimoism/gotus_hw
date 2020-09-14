@@ -26,10 +26,10 @@ func Unpack(input string) (string, error) {
 	for i := range inputRunes[:len(inputRunes)-1] {
 		char = inputRunes[i]
 		nextChar = inputRunes[i+1]
-		if isEscaped && char == 'n' { // in case of "a\nb"
-			return "", ErrInvalidString
-		}
 		if !isEscaped && char == '\\' {
+			if !unicode.IsDigit(nextChar) && nextChar != '\\' { // only digits and slashes escaping allowed
+				return "", ErrInvalidString
+			}
 			isEscaped = true
 			continue
 		}
