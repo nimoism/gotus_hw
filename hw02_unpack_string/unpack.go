@@ -10,10 +10,10 @@ import (
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(input string) (string, error) {
-	inputRunes := []rune(input)
 	if input == "" {
 		return "", nil
 	}
+	inputRunes := []rune(input)
 	if unicode.IsDigit(inputRunes[0]) {
 		return "", ErrInvalidString
 	}
@@ -26,7 +26,7 @@ func Unpack(input string) (string, error) {
 	for i := range inputRunes[:len(inputRunes)-1] {
 		char = inputRunes[i]
 		nextChar = inputRunes[i+1]
-		if isEscaped && char == 'n' {
+		if isEscaped && char == 'n' { // in case of "a\nb"
 			return "", ErrInvalidString
 		}
 		if !isEscaped && char == '\\' {
