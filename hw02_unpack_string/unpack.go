@@ -19,12 +19,11 @@ func Unpack(input string) (string, error) {
 	}
 
 	var builder strings.Builder
-	var char rune
 	var nextChar rune
 	var isEscaped bool
 
 	for i := range inputRunes[:len(inputRunes)-1] {
-		char = inputRunes[i]
+		char := inputRunes[i]
 		nextChar = inputRunes[i+1]
 		if !isEscaped && char == '\\' {
 			if !unicode.IsDigit(nextChar) && nextChar != '\\' { // only digits and slashes escaping allowed
@@ -46,13 +45,13 @@ func Unpack(input string) (string, error) {
 			}
 			builder.WriteString(strings.Repeat(string(char), repeatCount))
 		} else {
-			builder.WriteString(string(char))
+			builder.WriteRune(char)
 		}
 		isEscaped = false
 	}
 	// handle last char
 	if isEscaped || !unicode.IsDigit(nextChar) {
-		builder.WriteString(string(nextChar))
+		builder.WriteRune(nextChar)
 	}
 
 	return builder.String(), nil
