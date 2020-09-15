@@ -40,9 +40,8 @@ func Unpack(input string) (string, error) {
 			continue
 		}
 		if unicode.IsDigit(nextChar) {
-			var repeatCount int
-			var err error
-			if repeatCount, err = strconv.Atoi(string(nextChar)); err != nil {
+			repeatCount, err := strconv.Atoi(string(nextChar))
+			if err != nil {
 				return "", err
 			}
 			builder.WriteString(strings.Repeat(string(char), repeatCount))
