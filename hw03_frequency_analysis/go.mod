@@ -1,4 +1,4 @@
-module github.com/nimoism/hw03_frequency_analysis
+module github.com/nimoism/gotus_hw/hw03_frequency_analysis
 
 go 1.14
 
