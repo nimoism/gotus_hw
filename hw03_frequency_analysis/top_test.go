@@ -71,12 +71,13 @@ func TestTop10SmallText(t *testing.T) {
 var spaceBorderedText = `
 	один два 
 три четыре
-	 
+	 пять шесть
+
 	 `
 
 func TestTop10SpaceBordered(t *testing.T) {
 	t.Run("space bordered text test", func(t *testing.T) {
-		expected := []string{"один", "два", "три", "четыре"}
+		expected := []string{"один", "два", "три", "четыре", "пять", "шесть"}
 		require.ElementsMatch(t, expected, Top10(spaceBorderedText))
 	})
 }

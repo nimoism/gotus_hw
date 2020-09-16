@@ -14,9 +14,9 @@ type wordInfo struct {
 	count int
 }
 
-var skipWords = map[string]bool{
-	"":  true, // skip empty words in case of text is space bordered
-	"-": true,
+var skipWords = map[string]struct{}{
+	"":  {}, // skip empty words in case of text is space bordered
+	"-": {},
 }
 
 var sep = regexp.MustCompile(`[\s\t\n'"!]+`)
