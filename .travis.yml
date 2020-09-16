@@ -20,6 +20,8 @@ env:
     - GOPROXY=https://proxy.golang.org
     - BRANCH="${TRAVIS_PULL_REQUEST_BRANCH:-$TRAVIS_BRANCH}"
 
+cache: false
+
 before_install:
   - echo "current branch is ${BRANCH}"
   - if [ "${BRANCH}" == "master" ]; then travis_terminate 0; fi
