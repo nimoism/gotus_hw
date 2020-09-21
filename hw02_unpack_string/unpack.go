@@ -7,6 +7,8 @@ import (
 	"unicode"
 )
 
+const escapeChar = '\\'
+
 var ErrInvalidString = errors.New("invalid string")
 
 func Unpack(input string) (string, error) {
@@ -25,8 +27,8 @@ func Unpack(input string) (string, error) {
 	for i := range inputRunes[:len(inputRunes)-1] {
 		char := inputRunes[i]
 		nextChar = inputRunes[i+1]
-		if !isEscaped && char == '\\' {
-			if !unicode.IsDigit(nextChar) && nextChar != '\\' { // only digits and slashes escaping allowed
+		if !isEscaped && char == escapeChar {
+			if !unicode.IsDigit(nextChar) && nextChar != escapeChar { // only digits and slashes escaping allowed
 				return "", ErrInvalidString
 			}
 			isEscaped = true
