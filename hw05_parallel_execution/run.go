@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// Notifier allows notify once and ignore other notifications
+// Notifier allows notify once and ignore other notifications.
 type Notifier struct {
 	C chan struct{}
 }
