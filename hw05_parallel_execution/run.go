@@ -5,22 +5,6 @@ import (
 	"sync"
 )
 
-// Notifier allows notify once and ignore other notifications.
-type Notifier struct {
-	C chan struct{}
-}
-
-func (n Notifier) Notify() {
-	select {
-	case n.C <- struct{}{}:
-	default:
-	}
-}
-
-func NewNotifier() Notifier {
-	return Notifier{C: make(chan struct{}, 1)}
-}
-
 type Result struct {
 	err error
 }
@@ -44,44 +28,43 @@ func Run(tasks []Task, workerCount int, maxErrorCount int) error {
 	taskCh := make(chan Task)
 	resCh := make(chan Result)
 	doneCh := make(chan struct{})
-	stop := NewNotifier()
 
 	wg := sync.WaitGroup{}
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		runWorkers(workerCount, taskCh, resCh, doneCh)
-		stop.Notify()
-		wg.Done()
 	}()
 
 	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		pushTasks(taskCh, tasks, doneCh)
-		wg.Done()
 	}()
 
 	errorCount := 0
 	var err error
+
 	for {
-		select {
-		case result := <-resCh:
-			if ignoreErrors {
-				continue
-			}
-			if result.Err() != nil {
-				errorCount++
-			}
-			if errorCount >= maxErrorCount {
-				err = ErrErrorsLimitExceeded
-				stop.Notify()
-			}
-		case <-stop.C:
+		result, ok := <-resCh
+		if !ok {
+			break
+		}
+		if ignoreErrors {
+			continue
+		}
+		if result.Err() != nil {
+			errorCount++
+		}
+		if errorCount >= maxErrorCount {
+			err = ErrErrorsLimitExceeded
 			close(doneCh)
-			wg.Wait()
-			return err
+			break
 		}
 	}
+	wg.Wait()
+	return err
 }
 
 func pushTasks(taskCh chan<- Task, tasks []Task, doneCh <-chan struct{}) {
@@ -96,12 +79,13 @@ func pushTasks(taskCh chan<- Task, tasks []Task, doneCh <-chan struct{}) {
 }
 
 func runWorkers(count int, taskCh <-chan Task, resCh chan<- Result, doneCh <-chan struct{}) {
+	defer close(resCh)
 	wg := sync.WaitGroup{}
+	wg.Add(count)
 	for i := 0; i < count; i++ {
-		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			runWorker(taskCh, resCh, doneCh)
-			wg.Done()
 		}()
 	}
 	wg.Wait()
@@ -109,17 +93,13 @@ func runWorkers(count int, taskCh <-chan Task, resCh chan<- Result, doneCh <-cha
 
 func runWorker(taskCh <-chan Task, resCh chan<- Result, doneCh <-chan struct{}) {
 	for {
+		task, ok := <-taskCh
+		if !ok {
+			return
+		}
+		err := task()
 		select {
-		case task, ok := <-taskCh:
-			if !ok {
-				return
-			}
-			err := task()
-			select {
-			case resCh <- Result{err: err}:
-			case <-doneCh:
-				return
-			}
+		case resCh <- Result{err: err}:
 		case <-doneCh:
 			return
 		}
