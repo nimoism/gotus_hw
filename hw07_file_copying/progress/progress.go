@@ -13,6 +13,7 @@ import (
 const (
 	percentsWidth = 4
 	minWidth      = 4 + percentsWidth // Minimum of `[#] 100%` string.
+	drawErrorMsg  = "cant draw bar"
 )
 
 var ErrWriteLimitExceed = errors.New("write limit exceed")
@@ -39,12 +40,7 @@ func (r *Bar) Write(b []byte) (int, error) {
 	}
 	r.read += read
 	if err := r.draw(); err != nil {
-		return int(r.read), err
-	}
-	if r.read == r.total {
-		if _, err := r.out.Write([]byte("\n")); err != nil {
-			return int(read), err
-		}
+		return int(read), err
 	}
 	return int(read), nil
 }
@@ -63,10 +59,15 @@ func (r Bar) draw() error {
 	r.buf.WriteString(fmt.Sprintf("%v%%", int(frac*100)))
 	var err error
 	if _, err = r.out.Write([]byte("\r")); err != nil {
-		return err
+		return fmt.Errorf("%v: %w", drawErrorMsg, err)
 	}
 	if _, err = r.buf.WriteTo(r.out); err != nil {
-		return err
+		return fmt.Errorf("%v: %w", drawErrorMsg, err)
+	}
+	if r.read == r.total {
+		if _, err := r.out.Write([]byte("\n")); err != nil {
+			return fmt.Errorf("%v: %w", drawErrorMsg, err)
+		}
 	}
 	return nil
 }

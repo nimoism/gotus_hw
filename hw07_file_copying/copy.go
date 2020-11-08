@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 
@@ -19,18 +20,18 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 	var fromStat, toStat os.FileInfo
 	var err error
 	if from, err = os.Open(fromPath); err != nil {
-		return err
+		return fmt.Errorf("open source file error: %w", err)
 	}
 	defer from.Close()
 	if to, err = os.Create(toPath); err != nil {
-		return err
+		return fmt.Errorf("open destination file error: %w", err)
 	}
 	defer to.Close()
 	if fromStat, err = from.Stat(); err != nil {
-		return err
+		return fmt.Errorf("source stat file error: %w", err)
 	}
 	if toStat, err = to.Stat(); err != nil {
-		return err
+		return fmt.Errorf("destination stat file error: %w", err)
 	}
 	if os.SameFile(fromStat, toStat) {
 		return ErrSameFiles
@@ -40,7 +41,7 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 	}
 	if offset > 0 {
 		if _, err = from.Seek(offset, io.SeekStart); err != nil {
-			return err
+			return fmt.Errorf("offset error: %w", err)
 		}
 	}
 
@@ -53,7 +54,7 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 	}
 
 	if _, err = io.CopyN(w, from, limit); err != nil {
-		return err
+		return fmt.Errorf("copy error: %w", err)
 	}
 
 	return nil
