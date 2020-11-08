@@ -24,12 +24,12 @@ type Bar struct {
 	buf   bytes.Buffer
 }
 
-func NewBar(total int64, out io.Writer, width int) (*Bar, error) {
+func NewBar(total int64, out io.Writer, width int) *Bar {
 	if out == nil {
 		out = os.Stdout
 	}
 	buf := bytes.NewBuffer(make([]byte, int(math.Max(float64(width), minWidth))))
-	return &Bar{total: total, out: out, buf: *buf}, nil
+	return &Bar{total: total, out: out, buf: *buf}
 }
 
 func (r *Bar) Write(b []byte) (int, error) {

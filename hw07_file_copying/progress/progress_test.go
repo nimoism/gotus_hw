@@ -10,12 +10,9 @@ import (
 
 func TestBar(t *testing.T) {
 	var total int64 = 100
-	bar10, err := NewBar(total, &bytes.Buffer{}, 10)
-	require.NoError(t, err)
-	bar20, err := NewBar(total, &bytes.Buffer{}, 20)
-	require.NoError(t, err)
-	bar30, err := NewBar(total, &bytes.Buffer{}, 30)
-	require.NoError(t, err)
+	bar10 := NewBar(total, &bytes.Buffer{}, 10)
+	bar20 := NewBar(total, &bytes.Buffer{}, 20)
+	bar30 := NewBar(total, &bytes.Buffer{}, 30)
 
 	for i, tst := range []struct {
 		bar   *Bar
@@ -46,7 +43,6 @@ func TestBar(t *testing.T) {
 			}
 			out := tst.bar.out.(*bytes.Buffer)
 			out.Reset()
-			require.NoError(t, err)
 			n, err := tst.bar.Write(make([]byte, tst.add))
 			if tst.err != nil {
 				require.EqualError(t, err, tst.err.Error())

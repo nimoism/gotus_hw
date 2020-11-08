@@ -49,11 +49,7 @@ func Copy(fromPath string, toPath string, offset, limit int64) error {
 	width, _, err := progress.Term{}.Size()
 	// Continue without progress bar on getting terminal width error
 	if err == nil {
-		bar, err := progress.NewBar(limit, os.Stdout, width)
-		if err != nil {
-			return err
-		}
-		w = io.MultiWriter(w, bar)
+		w = io.MultiWriter(w, progress.NewBar(limit, os.Stdout, width))
 	}
 
 	if _, err = io.CopyN(w, from, limit); err != nil {
