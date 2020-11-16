@@ -4,17 +4,17 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 const (
-	wrongEnvChars = "="
-	trimChars     = " \n\t"
+	wrongEnvNameChars = "="
+	trimChars         = " \n\t"
 )
-
-var ErrWrongEnvValue = errors.New("wrong env value")
 
 type Environment map[string]string
 
@@ -30,61 +30,55 @@ func (e Environment) Strings() []string {
 // ReadDir reads a specified directory and returns map of env variables.
 // Variables represented as files where filename is name of variable, file first line is a value.
 func ReadDir(dir string) (Environment, error) {
-	d, err := os.Open(dir)
+	filesInfos, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("read dir error: %w", err)
 	}
-	defer d.Close()
-	var fileNames []string
-	fileNames, err = d.Readdirnames(0)
-	if err != nil {
-		return nil, fmt.Errorf("read dir error: %w", err)
-	}
-	envs := make(Environment, len(fileNames))
+	envs := make(Environment, len(filesInfos))
 	var value string
-	for _, fn := range fileNames {
-		value, err = func(fn string) (string, error) {
-			f, err := os.Open(filepath.Join(dir, fn))
+	for _, fi := range filesInfos {
+		if !fi.Mode().IsRegular() || fi.Mode().IsDir() {
+			continue
+		}
+		if strings.ContainsAny(fi.Name(), wrongEnvNameChars) {
+			continue
+		}
+		value, err = func(fi os.FileInfo) (string, error) {
+			f, err := os.Open(filepath.Join(dir, fi.Name()))
 			if err != nil {
 				return "", fmt.Errorf("read dir error: %w", err)
 			}
 			defer f.Close()
-			stat, err := f.Stat()
-			if err != nil {
-				return "", fmt.Errorf("read dir error: %w", err)
+			r := bufio.NewReader(f)
+			var (
+				buf        strings.Builder
+				bytesValue []byte
+				isPrefix   = true
+			)
+			for isPrefix {
+				if bytesValue, isPrefix, err = r.ReadLine(); err != nil && !errors.Is(err, io.EOF) {
+					return "", fmt.Errorf("read dir error: %w", err)
+				}
+				buf.Write(bytesValue)
 			}
-			if !stat.Mode().IsRegular() || stat.Mode().IsDir() {
-				return "", nil
-			}
-			scanner := bufio.NewScanner(f)
-			scanner.Split(bufio.ScanLines)
-			if !scanner.Scan() {
-				return "", nil
-			}
-			value = scanner.Text()
-			return value, nil
-		}(fn)
+			return buf.String(), nil
+		}(fi)
 		if err != nil {
 			return nil, fmt.Errorf("read dir error: %w", err)
 		}
-		if value, err = normalizeValue(value); err != nil {
-			return nil, err
-		}
+		value = normalizeValue(value)
 		if value != "" {
-			envs[fn] = value
+			envs[fi.Name()] = value
 		}
 	}
 	return envs, nil
 }
 
-func normalizeValue(value string) (string, error) {
+func normalizeValue(value string) string {
 	if value == "" {
-		return value, nil
-	}
-	if strings.ContainsAny(value, wrongEnvChars) {
-		return "", ErrWrongEnvValue
+		return value
 	}
 	value = strings.TrimRight(value, trimChars)
 	value = strings.ReplaceAll(value, "\x00", "\n")
-	return value, nil
+	return value
 }

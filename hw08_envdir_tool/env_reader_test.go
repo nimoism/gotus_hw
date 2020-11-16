@@ -24,21 +24,15 @@ func TestCleanValue(t *testing.T) {
 	for _, tst := range []struct {
 		value string
 		exp   string
-		err   error
 	}{
-		{value: "", exp: "", err: nil},
-		{value: "=", exp: "", err: ErrWrongEnvValue},
-		{value: "A=A", exp: "", err: ErrWrongEnvValue},
-		{value: "AAA\n", exp: "AAA", err: nil},
-		{value: "AAA\x00BB\n", exp: "AAA\nBB", err: nil},
-		{value: "  AAA\x00BB  \n", exp: "  AAA\nBB", err: nil},
+		{value: "", exp: ""},
+		{value: "=", exp: "="},
+		{value: "A=A", exp: "A=A"},
+		{value: "AAA\n", exp: "AAA"},
+		{value: "AAA\x00BB\n", exp: "AAA\nBB"},
+		{value: "  AAA\x00BB  \n", exp: "  AAA\nBB"},
 	} {
-		value, err := normalizeValue(tst.value)
-		if tst.err == nil {
-			require.NoError(t, err)
-		} else {
-			require.Equal(t, tst.err, err)
-		}
+		value := normalizeValue(tst.value)
 		require.Equal(t, tst.exp, value)
 	}
 }
