@@ -35,7 +35,6 @@ func ReadDir(dir string) (Environment, error) {
 		return nil, fmt.Errorf("read dir error: %w", err)
 	}
 	envs := make(Environment, len(filesInfos))
-	var value string
 	for _, fi := range filesInfos {
 		if !fi.Mode().IsRegular() || fi.Mode().IsDir() {
 			continue
@@ -43,10 +42,10 @@ func ReadDir(dir string) (Environment, error) {
 		if strings.ContainsAny(fi.Name(), wrongEnvNameChars) {
 			continue
 		}
-		value, err = func(fi os.FileInfo) (string, error) {
+		value, err := func(fi os.FileInfo) (string, error) {
 			f, err := os.Open(filepath.Join(dir, fi.Name()))
 			if err != nil {
-				return "", fmt.Errorf("read dir error: %w", err)
+				return "", fmt.Errorf("read %v file error: %w", fi.Name(), err)
 			}
 			defer f.Close()
 			r := bufio.NewReader(f)
@@ -57,14 +56,14 @@ func ReadDir(dir string) (Environment, error) {
 			)
 			for isPrefix {
 				if bytesValue, isPrefix, err = r.ReadLine(); err != nil && !errors.Is(err, io.EOF) {
-					return "", fmt.Errorf("read dir error: %w", err)
+					return "", fmt.Errorf("read %v file error: %w", fi.Name(), err)
 				}
 				buf.Write(bytesValue)
 			}
 			return buf.String(), nil
 		}(fi)
 		if err != nil {
-			return nil, fmt.Errorf("read dir error: %w", err)
+			return nil, err
 		}
 		value = normalizeValue(value)
 		if value != "" {
