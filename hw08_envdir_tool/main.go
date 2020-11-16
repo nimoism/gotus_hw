@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 )
 
@@ -11,7 +12,7 @@ func main() {
 	dir, command := os.Args[1], os.Args[2:]
 	envs, err := ReadDir(dir)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	exitCode := RunCmd(command, envs)
 	os.Exit(exitCode)
