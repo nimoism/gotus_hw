@@ -4,6 +4,8 @@ package hw10_program_optimization //nolint:golint,stylecheck
 
 import (
 	"bytes"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -36,4 +38,60 @@ func TestGetDomainStat(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
+
+}
+
+func TestCountDomains(t *testing.T) {
+	t.Run("empty domain", func(t *testing.T) {
+		result, err := countDomains(users{}, "")
+		require.Nil(t, result)
+		require.True(t, errors.Is(err, ErrEmptyDomain))
+	})
+
+	t.Run("email only ends with domain", func(t *testing.T) {
+		result, err := countDomains(users{
+			User{Email: "employer@sub.company.ru"},
+		}, "com")
+		require.NoError(t, err)
+		require.Equal(t, DomainStat{}, result)
+	})
+
+	t.Run("wrong email no @", func(t *testing.T) {
+		result, err := countDomains(users{
+			User{Email: "wrongemail.com"},
+		}, "com")
+		require.Nil(t, result)
+		require.True(t, errors.Is(err, ErrWrongEmail))
+	})
+
+	t.Run("wrong email too much @", func(t *testing.T) {
+		result, err := countDomains(users{
+			User{Email: "wr@ng@email.com"},
+		}, "com")
+		require.Nil(t, result)
+		require.True(t, errors.Is(err, ErrWrongEmail))
+	})
+
+}
+
+func TestGetUsers(t *testing.T) {
+	data := `{"ID": 1, "Email": "user1@example.com"}
+{"ID": 2, "Email": "user2@example.com"}`
+
+	t.Run("fill users", func(t *testing.T) {
+		users, err := getUsers(strings.NewReader(data))
+		require.NoError(t, err)
+		require.Equal(t, []User{
+			{ID: 1, Email: "user1@example.com"},
+			{ID: 2, Email: "user2@example.com"},
+			{},
+		}, users[:3])
+	})
+
+	t.Run("fill users empty", func(t *testing.T) {
+		users, err := getUsers(strings.NewReader(""))
+		require.NoError(t, err)
+		require.Equal(t, User{}, users[0])
+	})
+
 }
