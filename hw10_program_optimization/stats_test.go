@@ -39,59 +39,59 @@ func TestGetDomainStat(t *testing.T) {
 		require.Equal(t, DomainStat{}, result)
 	})
 
-}
-
-func TestCountDomains(t *testing.T) {
-	t.Run("empty domain", func(t *testing.T) {
-		result, err := countDomains(users{}, "")
-		require.Nil(t, result)
-		require.True(t, errors.Is(err, ErrEmptyDomain))
-	})
-
-	t.Run("email only ends with domain", func(t *testing.T) {
-		result, err := countDomains(users{
-			User{Email: "employer@sub.company.ru"},
-		}, "com")
+	t.Run("empty users", func(t *testing.T) {
+		result, err := GetDomainStat(strings.NewReader(""), "com")
 		require.NoError(t, err)
 		require.Equal(t, DomainStat{}, result)
 	})
 
-	t.Run("wrong email no @", func(t *testing.T) {
-		result, err := countDomains(users{
-			User{Email: "wrongemail.com"},
-		}, "com")
-		require.Nil(t, result)
+	t.Run("empty domain error", func(t *testing.T) {
+		_, err := GetDomainStat(strings.NewReader(data), "")
+		require.True(t, errors.Is(err, ErrWrongDomain))
+	})
+
+	t.Run("wrong domain error", func(t *testing.T) {
+		for _, domain := range []string{"", "c", "c0m", "c_m"} {
+			_, err := GetDomainStat(strings.NewReader(data), domain)
+			require.True(t, errors.Is(err, ErrWrongDomain), "non wrong domain: %s", domain)
+		}
+	})
+
+	t.Run("email only ends with domain", func(t *testing.T) {
+		data := `{"Id":1,"Email":"aliquid_qui_ea@Browsedrive.com.gov"}`
+		result, err := GetDomainStat(bytes.NewBufferString(data), "com")
+		require.NoError(t, err)
+		require.Equal(t, DomainStat{}, result)
+	})
+
+	t.Run("wrong email without @", func(t *testing.T) {
+		data := `{"Id":2,"Email":"broWsecat.com"}`
+		_, err := GetDomainStat(bytes.NewBufferString(data), "com")
 		require.True(t, errors.Is(err, ErrWrongEmail))
 	})
 
 	t.Run("wrong email too much @", func(t *testing.T) {
-		result, err := countDomains(users{
-			User{Email: "wr@ng@email.com"},
-		}, "com")
-		require.Nil(t, result)
+		data := `{"Id":1,"Email":"wr@ng@email.com"}`
+		_, err := GetDomainStat(bytes.NewBufferString(data), "com")
 		require.True(t, errors.Is(err, ErrWrongEmail))
 	})
 
-}
-
-func TestGetUsers(t *testing.T) {
-	data := `{"ID": 1, "Email": "user1@example.com"}
-{"ID": 2, "Email": "user2@example.com"}`
-
-	t.Run("fill users", func(t *testing.T) {
-		users, err := getUsers(strings.NewReader(data))
+	t.Run("domain case insensitive", func(t *testing.T) {
+		data := `{"Id":2,"Email":"mLynch@broWsecat.com"}`
+		result, err := GetDomainStat(bytes.NewBufferString(data), "COM")
 		require.NoError(t, err)
-		require.Equal(t, []User{
-			{ID: 1, Email: "user1@example.com"},
-			{ID: 2, Email: "user2@example.com"},
-			{},
-		}, users[:3])
+		require.Equal(t, DomainStat{
+			"browsecat.com": 1,
+		}, result)
 	})
 
-	t.Run("fill users empty", func(t *testing.T) {
-		users, err := getUsers(strings.NewReader(""))
+	t.Run("email domain case insensitive", func(t *testing.T) {
+		data := `{"Id":2,"Email":"mLynch@broWsecat.COM"}`
+		result, err := GetDomainStat(bytes.NewBufferString(data), "com")
 		require.NoError(t, err)
-		require.Equal(t, User{}, users[0])
+		require.Equal(t, DomainStat{
+			"browsecat.com": 1,
+		}, result)
 	})
 
 }
