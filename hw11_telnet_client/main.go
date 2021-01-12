@@ -19,9 +19,17 @@ func main() {
 	}
 	address := net.JoinHostPort(flag.Arg(0), flag.Arg(1))
 
+	var err error
+	defer func() {
+		if err != nil {
+			log.Println(err)
+		}
+	}()
 	tc := NewTelnetClient(address, *timeout, os.Stdin, os.Stdout)
-	logErr(tc.Connect())
-	defer func() { logErr(tc.Close()) }()
+	if err := tc.Connect(); err != nil {
+		return
+	}
+	defer func() { err = tc.Close() }()
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -32,20 +40,13 @@ func main() {
 
 	run := func(f func() error) {
 		defer cancel()
-		logErr(f())
+		err = f()
 	}
 	go run(tc.Send)
 	go run(tc.Receive)
 
 	select {
 	case <-sigCh:
-		cancel()
 	case <-ctx.Done():
-	}
-}
-
-func logErr(err error) {
-	if err != nil {
-		log.Fatal(err)
 	}
 }
