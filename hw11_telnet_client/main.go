@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 	"net"
@@ -20,26 +19,25 @@ func main() {
 	address := net.JoinHostPort(flag.Arg(0), flag.Arg(1))
 
 	var err error
-	defer func() {
-		if err != nil {
-			log.Println(err)
-		}
-	}()
 	tc := NewTelnetClient(address, *timeout, os.Stdin, os.Stdout)
-	if err := tc.Connect(); err != nil {
+	if err = tc.Connect(); err != nil {
+		log.Println(err)
 		return
 	}
-	defer func() { err = tc.Close() }()
 
-	ctx, cancel := context.WithCancel(context.Background())
-
+	defer tc.Close()
 	sigCh := make(chan os.Signal, 1)
-	defer close(sigCh)
 	signal.Notify(sigCh, syscall.SIGINT)
 	defer signal.Stop(sigCh)
 
+	doneCh := make(chan struct{})
 	run := func(f func() error) {
-		defer cancel()
+		defer func() {
+			select {
+			case doneCh <- struct{}{}:
+			default:
+			}
+		}()
 		err = f()
 	}
 	go run(tc.Send)
@@ -47,6 +45,9 @@ func main() {
 
 	select {
 	case <-sigCh:
-	case <-ctx.Done():
+	case <-doneCh:
+	}
+	if err != nil {
+		log.Println(err)
 	}
 }
