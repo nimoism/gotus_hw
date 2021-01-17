@@ -18,9 +18,8 @@ func main() {
 	}
 	address := net.JoinHostPort(flag.Arg(0), flag.Arg(1))
 
-	var err error
 	tc := NewTelnetClient(address, *timeout, os.Stdin, os.Stdout)
-	if err = tc.Connect(); err != nil {
+	if err := tc.Connect(); err != nil {
 		log.Println(err)
 		return
 	}
@@ -30,24 +29,18 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT)
 	defer signal.Stop(sigCh)
 
-	doneCh := make(chan struct{})
+	resultCh := make(chan error)
 	run := func(f func() error) {
-		defer func() {
-			select {
-			case doneCh <- struct{}{}:
-			default:
-			}
-		}()
-		err = f()
+		resultCh <- f()
 	}
 	go run(tc.Send)
 	go run(tc.Receive)
 
 	select {
 	case <-sigCh:
-	case <-doneCh:
-	}
-	if err != nil {
-		log.Println(err)
+	case err := <-resultCh:
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
