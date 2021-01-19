@@ -1,10 +1,17 @@
 run:
   tests: false
 
+linters-settings:
+  funlen:
+    lines: 150
+    statements: 80
+
 linters:
   disable-all: false
   enable-all: true
   disable:
+    - exhaustive
+    - exhaustivestruct
     - goerr113
     - gochecknoglobals
     - gochecknoinits
@@ -14,4 +21,6 @@ linters:
     - lll
     - nakedret
     - nlreturn
+    - testpackage
     - wsl
+    - wrapcheck
